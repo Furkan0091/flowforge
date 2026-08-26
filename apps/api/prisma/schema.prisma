@@ -1,0 +1,148 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  workflows  Workflow[]
+  executions WorkflowExecution[]
+
+  @@map("users")
+}
+
+model Workflow {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  status      String   @default("disabled") // enabled | disabled
+  userId      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  versions   WorkflowVersion[]
+  executions WorkflowExecution[]
+  webhook    Webhook?
+
+  @@index([userId, updatedAt])
+  @@map("workflows")
+}
+
+model WorkflowVersion {
+  id         String   @id @default(cuid())
+  workflowId String
+  version    Int
+  definition Json // { nodes: NodeDefinition[], edges: EdgeDefinition[] }
+  isActive   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+
+  workflow   Workflow             @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  executions WorkflowExecution[]
+
+  @@unique([workflowId, version])
+  @@index([workflowId, isActive])
+  @@map("workflow_versions")
+}
+
+model Webhook {
+  id         String   @id @default(cuid())
+  workflowId String   @unique
+  method     String   @default("POST")
+  secret     String?
+  slug       String   @unique
+  createdAt  DateTime @default(now())
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@map("webhooks")
+}
+
+model WorkflowExecution {
+  id          String    @id @default(cuid())
+  executionId String    @unique // public id: exec_xxxx
+  workflowId  String
+  versionId   String?
+  userId      String
+  triggerType String    @default("manual") // manual | webhook | schedule
+  status      String    @default("queued") // queued | running | completed | failed | retrying | cancelled
+  triggerData Json?
+  context     Json? // accumulated node outputs, used to resume after retries/delays
+  error       Json?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  workflow Workflow         @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  version  WorkflowVersion? @relation(fields: [versionId], references: [id], onDelete: SetNull)
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  nodes    ExecutionNode[]
+  logs     ExecutionLog[]
+
+  @@index([workflowId, createdAt])
+  @@index([userId, createdAt])
+  @@index([status])
+  @@map("workflow_executions")
+}
+
+model ExecutionNode {
+  id          String   @id @default(cuid())
+  executionId String
+  nodeId      String // node id inside the workflow definition
+  nodeType    String
+  label       String
+  status      String   @default("idle") // idle | queued | running | success | failed | skipped
+  attempts    Int      @default(0)
+  input       Json?
+  output      Json?
+  error       Json?
+  startedAt   DateTime?
+  finishedAt  DateTime?
+  createdAt   DateTime @default(now())
+
+  execution WorkflowExecution @relation(fields: [executionId], references: [executionId], onDelete: Cascade)
+
+  @@unique([executionId, nodeId])
+  @@index([executionId])
+  @@map("execution_nodes")
+}
+
+model ExecutionLog {
+  id          String   @id @default(cuid())
+  executionId String
+  level       String   @default("info") // info | warn | error | debug
+  message     String
+  nodeId      String?
+  nodeType    String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  execution WorkflowExecution @relation(fields: [executionId], references: [executionId], onDelete: Cascade)
+
+  @@index([executionId, createdAt])
+  @@map("execution_logs")
+}
+
+// Demo entity used by the "Database" workflow node (safe, allow-listed operations).
+model Lead {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  company   String?
+  status    String   @default("new")
+  source    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("leads")
+}

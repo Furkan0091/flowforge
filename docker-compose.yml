@@ -1,0 +1,114 @@
+name: flowforge
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: flowforge
+      POSTGRES_PASSWORD: flowforge
+      POSTGRES_DB: flowforge
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U flowforge -d flowforge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: dev
+    command: sh -c "cd /app && npx prisma generate --schema apps/api/prisma/schema.prisma && npx prisma db push --skip-generate --schema apps/api/prisma/schema.prisma && npm run dev -w @flowforge/api"
+    environment:
+      NODE_ENV: development
+      PORT: 4000
+      DATABASE_URL: postgresql://flowforge:flowforge@postgres:5432/flowforge?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-only-secret-change-me
+      WEB_ORIGIN: http://localhost:5173
+      EMAIL_MODE: mock
+    volumes:
+      - ./apps/api:/app/apps/api
+      - api_node_modules:/app/apps/api/node_modules
+    ports:
+      - "4000:4000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: dev
+    command: sh -c "cd /app && npx prisma generate --schema apps/api/prisma/schema.prisma && npm run dev:worker -w @flowforge/api"
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: postgresql://flowforge:flowforge@postgres:5432/flowforge?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-only-secret-change-me
+      EMAIL_MODE: mock
+    volumes:
+      - ./apps/api:/app/apps/api
+      - api_node_modules:/app/apps/api/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  web:
+    build:
+      context: .
+      dockerfile: apps/web/Dockerfile
+      target: dev
+    command: npm run dev -w @flowforge/web
+    environment:
+      VITE_PROXY_TARGET: http://api:4000
+    volumes:
+      - ./apps/web:/app/apps/web
+      - web_node_modules:/app/apps/web/node_modules
+    ports:
+      - "5173:5173"
+    depends_on:
+      - api
+
+  # One-shot seeding: docker compose --profile seed run --rm seed
+  seed:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+      target: dev
+    command: sh -c "cd /app && npx prisma db push --skip-generate --schema apps/api/prisma/schema.prisma && npm run db:seed -w @flowforge/api"
+    environment:
+      DATABASE_URL: postgresql://flowforge:flowforge@postgres:5432/flowforge?schema=public
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-only-secret-change-me
+      EMAIL_MODE: mock
+    profiles: ["seed"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+volumes:
+  pgdata:
+  api_node_modules:
+  web_node_modules:

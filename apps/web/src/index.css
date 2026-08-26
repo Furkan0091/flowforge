@@ -1,0 +1,121 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  @apply bg-canvas text-zinc-200 antialiased;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+/* Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #3f3f46 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #3f3f46;
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@layer components {
+  .panel {
+    @apply rounded-lg border border-zinc-800 bg-zinc-900/70;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-accent text-white hover:bg-accent-hover;
+  }
+  .btn-secondary {
+    @apply btn border border-zinc-700 bg-zinc-800/60 text-zinc-200 hover:bg-zinc-800;
+  }
+  .btn-ghost {
+    @apply btn text-zinc-400 hover:bg-zinc-800/60 hover:text-zinc-200;
+  }
+  .btn-danger {
+    @apply btn border border-red-900/60 bg-red-950/40 text-red-300 hover:bg-red-950/70;
+  }
+  .input {
+    @apply w-full rounded-md border border-zinc-700 bg-zinc-900 px-2.5 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 outline-none transition-colors focus:border-accent focus:ring-1 focus:ring-accent/40;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium uppercase tracking-wide text-zinc-500;
+  }
+  .code {
+    @apply font-mono text-[13px];
+  }
+}
+
+/* React Flow dark theme */
+.react-flow {
+  background: #0b0d12;
+}
+.react-flow__attribution {
+  display: none;
+}
+.react-flow__controls {
+  @apply overflow-hidden rounded-lg border border-zinc-800 shadow-lg;
+}
+.react-flow__controls button {
+  @apply border-zinc-800 bg-zinc-900 text-zinc-300 hover:bg-zinc-800;
+}
+.react-flow__minimap {
+  @apply rounded-lg border border-zinc-800 bg-zinc-900;
+}
+.react-flow__edge-path {
+  stroke: #52525b;
+  stroke-width: 1.5;
+}
+.react-flow__edge.selected .react-flow__edge-path {
+  stroke: #6366f1;
+}
+.react-flow__edge.active .react-flow__edge-path {
+  stroke: #22d3ee;
+}
+
+@keyframes pulse-ring {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 211, 238, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(34, 211, 238, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 211, 238, 0);
+  }
+}
+.running-glow {
+  animation: pulse-ring 1.2s infinite;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.fade-in {
+  animation: fade-in 0.15s ease-out;
+}

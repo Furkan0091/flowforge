@@ -1,0 +1,28 @@
+{
+  "name": "flowforge",
+  "version": "1.0.0",
+  "private": true,
+  "description": "FlowForge — Visual Workflow Automation Platform",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,worker,web -c blue,yellow,green \"npm run dev -w @flowforge/api\" \"npm run dev:worker -w @flowforge/api\" \"npm run dev -w @flowforge/web\"",
+    "dev:api": "npm run dev -w @flowforge/api",
+    "dev:worker": "npm run dev:worker -w @flowforge/api",
+    "dev:web": "npm run dev -w @flowforge/web",
+    "build": "npm run build -w @flowforge/api && npm run build -w @flowforge/web",
+    "test": "npm run test -w @flowforge/api && npm run test -w @flowforge/web",
+    "typecheck": "npm run typecheck -w @flowforge/api && npm run typecheck -w @flowforge/web",
+    "db:generate": "npm run db:generate -w @flowforge/api",
+    "db:push": "npm run db:push -w @flowforge/api",
+    "db:seed": "npm run db:seed -w @flowforge/api"
+  },
+  "devDependencies": {
+    "concurrently": "^9.1.0",
+    "dotenv-cli": "^7.4.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
